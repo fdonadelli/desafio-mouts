@@ -1,3 +1,5 @@
+using AutoMapper;
+using EmployeeManagement.Application.DTOs;
 using EmployeeManagement.Application.UseCases.Employees.GetById;
 using EmployeeManagement.Domain.Entities;
 using EmployeeManagement.Domain.Enums;
@@ -15,16 +17,19 @@ namespace EmployeeManagement.Tests.Application.UseCases.Employees;
 public class GetEmployeeByIdUseCaseTests
 {
     private readonly Mock<IEmployeeRepository> _employeeRepositoryMock;
+    private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<ILogger<GetEmployeeByIdUseCase>> _loggerMock;
     private readonly GetEmployeeByIdUseCase _sut;
 
     public GetEmployeeByIdUseCaseTests()
     {
         _employeeRepositoryMock = new Mock<IEmployeeRepository>();
+        _mapperMock = new Mock<IMapper>();
         _loggerMock = new Mock<ILogger<GetEmployeeByIdUseCase>>();
 
         _sut = new GetEmployeeByIdUseCase(
             _employeeRepositoryMock.Object,
+            _mapperMock.Object,
             _loggerMock.Object);
     }
 
@@ -34,10 +39,15 @@ public class GetEmployeeByIdUseCaseTests
         // Arrange
         var employeeId = Guid.NewGuid();
         var employee = CreateValidEmployee(employeeId);
+        var employeeResponse = CreateEmployeeResponse(employee);
 
         _employeeRepositoryMock
             .Setup(x => x.GetByIdWithPhonesAsync(employeeId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(employee);
+
+        _mapperMock
+            .Setup(x => x.Map<EmployeeResponse>(employee))
+            .Returns(employeeResponse);
 
         // Act
         var result = await _sut.ExecuteAsync(employeeId);
@@ -82,5 +92,24 @@ public class GetEmployeeByIdUseCaseTests
 
         return employee;
     }
-}
 
+    private static EmployeeResponse CreateEmployeeResponse(Employee employee)
+    {
+        return new EmployeeResponse(
+            Id: employee.Id,
+            FirstName: employee.FirstName,
+            LastName: employee.LastName,
+            FullName: employee.FullName,
+            Email: employee.Email,
+            DocumentNumber: employee.DocumentNumber,
+            BirthDate: employee.BirthDate,
+            Role: employee.Role,
+            IsActive: employee.IsActive,
+            ManagerId: employee.ManagerId,
+            ManagerName: null,
+            Phones: employee.Phones.Select(p => new PhoneDto(p.Id, p.Number, p.Type)).ToList(),
+            CreatedAt: employee.CreatedAt,
+            UpdatedAt: employee.UpdatedAt
+        );
+    }
+}

@@ -1,6 +1,7 @@
 using EmployeeManagement.API;
 using EmployeeManagement.API.Extensions;
 using EmployeeManagement.API.Middleware;
+using EmployeeManagement.CrossCutting.DependencyInjection;
 using EmployeeManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -20,9 +21,10 @@ builder.Host.UseSerilog();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Configurações customizadas
-builder.Services.AddApplicationServices();
-builder.Services.AddInfrastructureServices(builder.Configuration);
+// Configurações customizadas - CrossCutting (Application + Infrastructure)
+builder.Services.AddEmployeeManagement(builder.Configuration);
+
+// Configurações específicas da API
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddSwaggerDocumentation();
 

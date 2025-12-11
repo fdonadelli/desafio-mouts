@@ -36,15 +36,18 @@ Sistema de gerenciamento de funcionários de uma empresa fictícia com as seguin
 
 ## 🏗️ Arquitetura
 
-O projeto segue uma **Clean Architecture simplificada** com 4 camadas:
+O projeto segue uma **Clean Architecture** com 5 camadas, respeitando o **Dependency Inversion Principle (DIP)**:
 
 ```
 ┌─────────────────────────────────────────┐
 │              API (Presentation)          │
 │  Controllers, Middleware, Configuration  │
 ├─────────────────────────────────────────┤
+│            CrossCutting (IoC)            │
+│   Dependency Injection, AutoMapper       │
+├─────────────────────────────────────────┤
 │            Application                   │
-│   Use Cases, DTOs, Validators, Mappings  │
+│   Use Cases, DTOs, Validators            │
 ├─────────────────────────────────────────┤
 │              Domain                      │
 │    Entities, Enums, Interfaces           │
@@ -57,13 +60,21 @@ O projeto segue uma **Clean Architecture simplificada** com 4 camadas:
 ### Fluxo de Dependências
 
 ```
-API → Application → Domain ← Infrastructure
+API → CrossCutting → Application → Domain ← Infrastructure
 ```
 
 - **Domain**: Núcleo da aplicação, sem dependências externas
 - **Application**: Lógica de aplicação (Use Cases), depende apenas do Domain
 - **Infrastructure**: Implementações concretas (EF Core, PostgreSQL)
+- **CrossCutting**: Configuração de DI, centraliza registro de serviços (IoC)
 - **API**: Camada de apresentação (Controllers, Middleware)
+
+### Dependency Inversion Principle (DIP)
+
+A camada **CrossCutting** centraliza toda a configuração de Injeção de Dependência, permitindo que:
+- A API não conheça diretamente as implementações concretas
+- O registro de serviços seja feito em um único lugar
+- As camadas dependam apenas de abstrações (interfaces)
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -72,6 +83,7 @@ API → Application → Domain ← Infrastructure
 - **PostgreSQL** - Banco de dados
 - **JWT Bearer** - Autenticação
 - **FluentValidation** - Validação de dados
+- **AutoMapper** - Mapeamento objeto-objeto
 - **BCrypt.Net** - Hash de senhas
 - **Serilog** - Logging estruturado
 - **Swagger/OpenAPI** - Documentação da API
@@ -93,9 +105,12 @@ public interface ICreateEmployeeUseCase
 
 public class CreateEmployeeUseCase : ICreateEmployeeUseCase
 {
+    private readonly IMapper _mapper;
+    
     public async Task<EmployeeResponse> ExecuteAsync(CreateEmployeeRequest request, Guid creatorId, CancellationToken cancellationToken = default)
     {
         // Validações e lógica de criação
+        return _mapper.Map<EmployeeResponse>(employee);
     }
 }
 ```
@@ -153,17 +168,23 @@ public record CreateEmployeeRequest(
 │   ├── EmployeeManagement.API/           # Camada de apresentação
 │   │   ├── Controllers/                  # Endpoints da API
 │   │   ├── Middleware/                   # Exception handling
-│   │   ├── Extensions/                   # Service collection extensions
+│   │   ├── Extensions/                   # JWT e Swagger config
 │   │   ├── Configuration/                # JWT settings
 │   │   └── Services/                     # JWT service
 │   │
+│   ├── EmployeeManagement.CrossCutting/  # Inversão de Controle (IoC)
+│   │   ├── DependencyInjection/          # Registro de serviços
+│   │   │   ├── ServiceCollectionExtensions.cs
+│   │   │   ├── ApplicationServiceCollectionExtensions.cs
+│   │   │   └── InfrastructureServiceCollectionExtensions.cs
+│   │   └── Mappings/                     # Perfis do AutoMapper
+│   │       └── EmployeeMappingProfile.cs
+│   │
 │   ├── EmployeeManagement.Application/   # Camada de aplicação
 │   │   ├── UseCases/                     # Casos de uso da aplicação
-│   │   │   ├── Auth/                     # Use cases de autenticação
+│   │   │   ├── Auth/
 │   │   │   │   └── Login/
-│   │   │   │       ├── ILoginUseCase.cs
-│   │   │   │       └── LoginUseCase.cs
-│   │   │   └── Employees/                # Use cases de funcionários
+│   │   │   └── Employees/
 │   │   │       ├── Create/
 │   │   │       ├── Update/
 │   │   │       ├── Delete/
@@ -174,8 +195,7 @@ public record CreateEmployeeRequest(
 │   │   ├── DTOs/                         # Data Transfer Objects
 │   │   ├── Interfaces/                   # Contratos (IJwtService, IPasswordHasher)
 │   │   ├── Services/                     # Serviços auxiliares (PasswordHasher)
-│   │   ├── Validators/                   # FluentValidation validators
-│   │   └── Mappings/                     # Mapeamento Entity <-> DTO
+│   │   └── Validators/                   # FluentValidation validators
 │   │
 │   ├── EmployeeManagement.Domain/        # Camada de domínio
 │   │   ├── Entities/                     # Entidades do domínio
@@ -350,6 +370,18 @@ dotnet test --collect:"XPlat Code Coverage"
 - **Manutenibilidade**: Alterações em uma funcionalidade não afetam outras
 - **Navegação**: Fácil de encontrar onde está a lógica de cada operação
 
+### Por que CrossCutting/IoC separado?
+- **Dependency Inversion Principle (DIP)**: A API não conhece implementações concretas
+- **Centralização**: Toda configuração de DI em um único lugar
+- **Desacoplamento**: Camadas dependem apenas de abstrações
+- **Manutenibilidade**: Fácil adicionar/remover serviços
+
+### Por que AutoMapper?
+- **Produtividade**: Menos código boilerplate para mapeamentos
+- **Convenções**: Mapeamento automático por convenção de nomes
+- **Configuração centralizada**: Perfis de mapeamento organizados
+- **Testabilidade**: Fácil de mockar nos testes
+
 ### Por que Clean Architecture?
 - Separação clara de responsabilidades
 - Facilita testes unitários
@@ -375,11 +407,6 @@ dotnet test --collect:"XPlat Code Coverage"
 - Preserva histórico de dados
 - Permite reativação de funcionários
 - Evita problemas com integridade referencial
-
-### Por que não usar AutoMapper?
-- Para projetos menores, mapeamento manual é mais explícito
-- Evita "magia" que pode dificultar debugging
-- Menos uma dependência externa
 
 ## 📝 Licença
 

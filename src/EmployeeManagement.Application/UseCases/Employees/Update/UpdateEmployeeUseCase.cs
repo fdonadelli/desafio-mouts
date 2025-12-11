@@ -1,5 +1,5 @@
+using AutoMapper;
 using EmployeeManagement.Application.DTOs;
-using EmployeeManagement.Application.Mappings;
 using EmployeeManagement.Domain.Entities;
 using EmployeeManagement.Domain.Exceptions;
 using EmployeeManagement.Domain.Interfaces;
@@ -11,15 +11,18 @@ public class UpdateEmployeeUseCase : IUpdateEmployeeUseCase
 {
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
     private readonly ILogger<UpdateEmployeeUseCase> _logger;
 
     public UpdateEmployeeUseCase(
         IEmployeeRepository employeeRepository,
         IUnitOfWork unitOfWork,
+        IMapper mapper,
         ILogger<UpdateEmployeeUseCase> logger)
     {
         _employeeRepository = employeeRepository;
         _unitOfWork = unitOfWork;
+        _mapper = mapper;
         _logger = logger;
     }
 
@@ -40,7 +43,7 @@ public class UpdateEmployeeUseCase : IUpdateEmployeeUseCase
         _logger.LogInformation("Funcionário atualizado com sucesso: {EmployeeId}", id);
 
         var updatedEmployee = await _employeeRepository.GetByIdWithPhonesAsync(id, cancellationToken);
-        return EmployeeMapper.ToResponse(updatedEmployee!);
+        return _mapper.Map<EmployeeResponse>(updatedEmployee!);
     }
 
     private async Task<Employee> GetEmployeeOrThrow(Guid id, CancellationToken cancellationToken)
@@ -114,4 +117,3 @@ public class UpdateEmployeeUseCase : IUpdateEmployeeUseCase
         }
     }
 }
-

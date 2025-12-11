@@ -1,6 +1,6 @@
+using AutoMapper;
 using EmployeeManagement.Application.DTOs;
 using EmployeeManagement.Application.Interfaces;
-using EmployeeManagement.Application.Mappings;
 using EmployeeManagement.Domain.Entities;
 using EmployeeManagement.Domain.Exceptions;
 using EmployeeManagement.Domain.Interfaces;
@@ -13,17 +13,20 @@ public class CreateEmployeeUseCase : ICreateEmployeeUseCase
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IMapper _mapper;
     private readonly ILogger<CreateEmployeeUseCase> _logger;
 
     public CreateEmployeeUseCase(
         IEmployeeRepository employeeRepository,
         IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
+        IMapper mapper,
         ILogger<CreateEmployeeUseCase> logger)
     {
         _employeeRepository = employeeRepository;
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
+        _mapper = mapper;
         _logger = logger;
     }
 
@@ -43,7 +46,7 @@ public class CreateEmployeeUseCase : ICreateEmployeeUseCase
         _logger.LogInformation("Funcionário criado com sucesso: {EmployeeId}", employee.Id);
 
         var createdEmployee = await _employeeRepository.GetByIdWithPhonesAsync(employee.Id, cancellationToken);
-        return EmployeeMapper.ToResponse(createdEmployee!);
+        return _mapper.Map<EmployeeResponse>(createdEmployee!);
     }
 
     private async Task ValidateCreatorPermissions(Guid creatorId, CreateEmployeeRequest request, CancellationToken cancellationToken)
@@ -115,4 +118,3 @@ public class CreateEmployeeUseCase : ICreateEmployeeUseCase
         return employee;
     }
 }
-

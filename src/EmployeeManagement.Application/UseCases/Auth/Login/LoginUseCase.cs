@@ -1,6 +1,6 @@
+using AutoMapper;
 using EmployeeManagement.Application.DTOs;
 using EmployeeManagement.Application.Interfaces;
-using EmployeeManagement.Application.Mappings;
 using EmployeeManagement.Domain.Exceptions;
 using EmployeeManagement.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -12,17 +12,20 @@ public class LoginUseCase : ILoginUseCase
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtService _jwtService;
+    private readonly IMapper _mapper;
     private readonly ILogger<LoginUseCase> _logger;
 
     public LoginUseCase(
         IEmployeeRepository employeeRepository,
         IPasswordHasher passwordHasher,
         IJwtService jwtService,
+        IMapper mapper,
         ILogger<LoginUseCase> logger)
     {
         _employeeRepository = employeeRepository;
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
+        _mapper = mapper;
         _logger = logger;
     }
 
@@ -57,8 +60,7 @@ public class LoginUseCase : ILoginUseCase
         return new LoginResponse(
             Token: token,
             ExpiresAt: expiresAt,
-            Employee: EmployeeMapper.ToResponse(employee)
+            Employee: _mapper.Map<EmployeeResponse>(employee)
         );
     }
 }
-

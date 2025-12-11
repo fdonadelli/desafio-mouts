@@ -1,5 +1,5 @@
+using AutoMapper;
 using EmployeeManagement.Application.DTOs;
-using EmployeeManagement.Application.Mappings;
 using EmployeeManagement.Domain.Exceptions;
 using EmployeeManagement.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -9,13 +9,16 @@ namespace EmployeeManagement.Application.UseCases.Employees.GetById;
 public class GetEmployeeByIdUseCase : IGetEmployeeByIdUseCase
 {
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly IMapper _mapper;
     private readonly ILogger<GetEmployeeByIdUseCase> _logger;
 
     public GetEmployeeByIdUseCase(
         IEmployeeRepository employeeRepository,
+        IMapper mapper,
         ILogger<GetEmployeeByIdUseCase> logger)
     {
         _employeeRepository = employeeRepository;
+        _mapper = mapper;
         _logger = logger;
     }
 
@@ -31,7 +34,6 @@ public class GetEmployeeByIdUseCase : IGetEmployeeByIdUseCase
             throw new NotFoundException("Funcionário", id);
         }
 
-        return EmployeeMapper.ToResponse(employee);
+        return _mapper.Map<EmployeeResponse>(employee);
     }
 }
-

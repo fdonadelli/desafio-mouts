@@ -1,3 +1,4 @@
+using AutoMapper;
 using EmployeeManagement.Application.DTOs;
 using EmployeeManagement.Application.Interfaces;
 using EmployeeManagement.Application.UseCases.Auth.Login;
@@ -19,6 +20,7 @@ public class LoginUseCaseTests
     private readonly Mock<IEmployeeRepository> _employeeRepositoryMock;
     private readonly Mock<IPasswordHasher> _passwordHasherMock;
     private readonly Mock<IJwtService> _jwtServiceMock;
+    private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<ILogger<LoginUseCase>> _loggerMock;
     private readonly LoginUseCase _sut;
 
@@ -27,12 +29,14 @@ public class LoginUseCaseTests
         _employeeRepositoryMock = new Mock<IEmployeeRepository>();
         _passwordHasherMock = new Mock<IPasswordHasher>();
         _jwtServiceMock = new Mock<IJwtService>();
+        _mapperMock = new Mock<IMapper>();
         _loggerMock = new Mock<ILogger<LoginUseCase>>();
 
         _sut = new LoginUseCase(
             _employeeRepositoryMock.Object,
             _passwordHasherMock.Object,
             _jwtServiceMock.Object,
+            _mapperMock.Object,
             _loggerMock.Object);
     }
 
@@ -44,6 +48,7 @@ public class LoginUseCaseTests
         var employee = CreateValidEmployee();
         var token = "jwt-token";
         var expiresAt = DateTime.UtcNow.AddHours(1);
+        var employeeResponse = CreateEmployeeResponse(employee);
 
         _employeeRepositoryMock
             .Setup(x => x.GetByEmailAsync(request.Email, It.IsAny<CancellationToken>()))
@@ -56,6 +61,10 @@ public class LoginUseCaseTests
         _jwtServiceMock
             .Setup(x => x.GenerateToken(employee))
             .Returns((token, expiresAt));
+
+        _mapperMock
+            .Setup(x => x.Map<EmployeeResponse>(employee))
+            .Returns(employeeResponse);
 
         // Act
         var result = await _sut.ExecuteAsync(request);
@@ -145,5 +154,24 @@ public class LoginUseCaseTests
 
         return employee;
     }
-}
 
+    private static EmployeeResponse CreateEmployeeResponse(Employee employee)
+    {
+        return new EmployeeResponse(
+            Id: employee.Id,
+            FirstName: employee.FirstName,
+            LastName: employee.LastName,
+            FullName: employee.FullName,
+            Email: employee.Email,
+            DocumentNumber: employee.DocumentNumber,
+            BirthDate: employee.BirthDate,
+            Role: employee.Role,
+            IsActive: employee.IsActive,
+            ManagerId: employee.ManagerId,
+            ManagerName: null,
+            Phones: employee.Phones.Select(p => new PhoneDto(p.Id, p.Number, p.Type)).ToList(),
+            CreatedAt: employee.CreatedAt,
+            UpdatedAt: employee.UpdatedAt
+        );
+    }
+}
