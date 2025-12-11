@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: employee-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: employee_management
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - employee-network
+
+  # API .NET 8
+  api:
+    build:
+      context: .
+      dockerfile: src/EmployeeManagement.API/Dockerfile
+    container_name: employee-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=employee_management;Username=postgres;Password=postgres
+      - JwtSettings__Secret=sua-chave-secreta-super-segura-com-pelo-menos-32-caracteres-aqui-docker
+      - JwtSettings__Issuer=EmployeeManagementAPI
+      - JwtSettings__Audience=EmployeeManagementClient
+      - JwtSettings__ExpirationInMinutes=60
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - employee-network
+
+volumes:
+  postgres_data:
+
+networks:
+  employee-network:
+    driver: bridge
+
